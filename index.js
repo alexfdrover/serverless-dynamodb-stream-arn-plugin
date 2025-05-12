@@ -30,9 +30,13 @@ class fetchDynamoDBStreamsPlugin {
 						serverless.cli.log(
 							`Fetching Streams of [ Table : ${tableName} ] in region ${region}`
 						);
+						const profile = (options && options['aws-profile']) ||
+							(serverless.service && serverless.service.provider && serverless.service.provider.profile) ||
+							process.env.AWS_PROFILE;
 						const data = await getDynamoDBStreams(
 							region,
-							tableName
+							tableName,
+							buildCredentials(profile)
 						);
 
 						myStreamArn = extractStreamARNFromStreamData(data, tableName);
@@ -71,9 +75,12 @@ const extractStreamARNFromStreamData = (data, tableName) => {
 	return streamArn;
 };
 
-const getDynamoDBStreams = async (region, tableName) => {
+const buildCredentials = (profile) => profile ? new AWS.SharedIniFileCredentials({ profile }) : undefined;
+
+const getDynamoDBStreams = async (region, tableName, credentials) => {
 	const dynamoStreams = new AWS.DynamoDBStreams({
-		region: region,
+		region,
+		credentials,
 	});
 	const params = {
 		TableName: tableName,
